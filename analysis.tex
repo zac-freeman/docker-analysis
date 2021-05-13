@@ -1,0 +1,90 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Comparison of Containerized and Native Applications in the Store}
+\author{Zac Freeman}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This paper aims to summarize the impact of Docker on the store systems and processes. The current impact of Docker will be discussed and analyzed in Deployment Process, Resource Consumption, and Latency. The future impact of Docker will be discussed in Development Experience and Application Security. Any code, data, or assumptions used in the analyses will be listed in the Footnotes.
+
+\section{Deployment Process}
+Currently, the Z-neXt project employs Docker to manage a containerized Envoy application. Envoy routes requests from in-store applications to either an above-store or in-store service, depending on the health of the above-store service.
+
+\subsection{Container Deployment}
+Deploying the Envoy container to a store requires that the Docker daemon be installed in the store and the official Envoy Docker image be downloaded from Docker Hub. Installing the Docker daemon necessitates enabling the ol7\_addons-prod package repository in the store. Once the image is downloaded to the store, it can be started by the Docker daemon.
+
+This solution could be made production-ready by hosting the Docker image in the AutoZone Artifactory, and retrieving it in the store from the AutoZone Artifactory.
+
+\subsection{Native Deployment}
+Deploying the native Envoy application to a store would require adding the tetrate-getenvoy package repository to the store. Once the package repository is added, the Envoy application can be installed with the getenvoy-envoy package.
+
+\section{Resource Consumption}
+The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to limit its access to system resources. A Docker container is able to make use of running Linux kernel and additionally provide the dependencies needed by the containerized software in a virtual environment. This approach provides a lightweight solution to software virtualization.
+
+\subsection{Idle Consumption}
+The following data was collected while no requests were being made to the Envoy application.
+
+\begin{table}[h!]
+\begin{tabular}{ |c|c|c|c| }
+ \hline
+   & Memory & Storage & CPU \\ 
+ \hline
+ Native Application & 0 & 93.9 MB & 0\\
+ \hline
+ Containerized Application & 0 & 84.6 MB & 0 \\
+ \hline
+ Docker Dependencies & 0 & 359.4 MB & 0 \\
+ \hline\hline
+ Absolute Increase & 0 & 350.1 MB & 0 \\
+ \hline
+ Relative Increase & 0 & 372.8\% & 0 \\
+ \hline
+\end{tabular}
+\caption{The store resources consumed by the native application and the containerized application when idle.}
+\label{table:1}
+\end{table}
+
+It is important to note that the storage consumed by Docker Dependencies is a flat cost that     does not increase with the number of containers.
+
+\subsection{Consumption Under Load}
+The following data was collected while the Envoy application was under a simulated load of 10 requests per second.
+
+\begin{table}[h!]
+\begin{tabular}{ |c|c|c| }
+ \hline
+   & Memory & CPU \\ 
+ \hline
+ Native Application & 0 & 0\\
+ \hline
+ Containerized Application & 0 & 0 \\
+ \hline
+ Docker Dependencies & 0 & 0 \\
+ \hline\hline
+ Absolute Difference & 0 & 0 \\
+ \hline
+ Relative Difference & 0 & 0 \\
+ \hline
+\end{tabular}
+\caption{The store resources consumed by the native application and the containerized application under load.}
+\label{table:2}
+\end{table}
+
+\section{Latency}
+
+\section{Development Experience}
+
+\section{Application Security}
+
+\section{Footnotes}
+The size of each application was captured with \texttt{rpm -qi package\_name}. The size of the docker image used by the containerized application was captured from \texttt{docker images}.
+
+The Docker Dependencies row represents the packages added to use Docker in the store. This includes \texttt{docker-engine}, \texttt{docker-cli}, \texttt{containerd}, and \texttt{container-selinux}.
+
+\texttt{docker-engine} installed size is 103.7 MB. \texttt{docker-cli} installed size is 168.7 MB. \texttt{containerd} installed size is 87.0 MB. \texttt{container-selinux} installed size is less than 0.1 MB.
+
+
+\end{document}
