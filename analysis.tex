@@ -9,7 +9,7 @@
 \maketitle
 
 \section{Introduction}
-This paper aims to summarize the impact of Docker on the store systems and processes. The current impact of Docker will be discussed and analyzed in Deployment Process, Resource Consumption, and Latency. The future impact of Docker will be discussed in Development Experience and Application Security. Any code, data, or assumptions used in the analyses will be listed in the Footnotes.
+This paper aims to summarize the impact of Docker on the store systems and processes. The current impact of Docker will be discussed and analyzed in Deployment Process, Resource Consumption, and Latency. The future impact of Docker will be discussed in Development Experience and Application Security. Any code, data, or assumptions used in the analyses will be listed in the Methods and Scripts.
 
 \section{Deployment Process}
 Currently, the Z-neXt project employs Docker to manage a containerized Envoy application. Envoy routes requests from in-store applications to either an above-store or in-store service, depending on the health of the above-store service.
@@ -31,24 +31,24 @@ The following data was collected while no requests were being made to the Envoy 
 \begin{table}[h!]
 \begin{tabular}{ |c|c|c|c| }
  \hline
-   & Memory & Storage & CPU \\ 
+   & Memory (MB) & Storage (MB) & CPU (\%) \\ 
  \hline
- Native Application & 0 & 93.9 MB & 0\\
+ Native Application & 36.3 & 93.9 & 0.47 \\
  \hline
- Containerized Application & 0 & 84.6 MB & 0 \\
+ Containerized Application & 46.8 & 84.6 & 0.01 \\
  \hline
- Docker Dependencies & 0 & 359.4 MB & 0 \\
+ Docker Dependencies & 57.8 & 359.4 & 0.09 \\
  \hline\hline
- Absolute Increase & 0 & 350.1 MB & 0 \\
+ Increase (with Dependencies) & 68.3 & 350.1 & -0.37 \\
  \hline
- Relative Increase & 0 & 372.8\% & 0 \\
+ Increase (without Dependencies) & 10.5 & -9.3 & -0.46 \\
  \hline
 \end{tabular}
 \caption{The store resources consumed by the native application and the containerized application when idle.}
 \label{table:1}
 \end{table}
 
-It is important to note that the storage consumed by Docker Dependencies is a flat cost that     does not increase with the number of containers.
+It is important to note that the resources consumed by the Docker Dependencies represent a flat cost that  does not grow with the number of containers.
 
 \subsection{Consumption Under Load}
 The following data was collected while the Envoy application was under a simulated load of 10 requests per second.
@@ -79,12 +79,75 @@ The following data was collected while the Envoy application was under a simulat
 
 \section{Application Security}
 
-\section{Footnotes}
+\section{Methods}
+\subsection{Storage Consumption}
 The size of each application was captured with \texttt{rpm -qi package\_name}. The size of the docker image used by the containerized application was captured from \texttt{docker images}.
 
 The Docker Dependencies row represents the packages added to use Docker in the store. This includes \texttt{docker-engine}, \texttt{docker-cli}, \texttt{containerd}, and \texttt{container-selinux}.
 
 \texttt{docker-engine} installed size is 103.7 MB. \texttt{docker-cli} installed size is 168.7 MB. \texttt{containerd} installed size is 87.0 MB. \texttt{container-selinux} installed size is less than 0.1 MB.
 
+\subsection{Memory Consumption}
+The memory consumed by each process was equated with the physical memory being used by each process. The physical memory being used by each process was captured with \texttt{cat /proc/process\_id/status $|$ grep VmRSS}.
+
+The Docker Dependencies row represents the docker daemon and the processes required to run the docker daemon. This includes \texttt{containerd}, \texttt{dockerd}, and \texttt{containerd-shim}.
+
+During idle measurements, \texttt{containerd} consumed 37.9 MB of physical memory, \texttt{dockerd} consumed 12.7 MB of physical memory, and \texttt{containerd-shim} consumed 7.3 MB of physical memory.
+
+\subsection{CPU Consumption}
+CPU consumption for each process was determined by taking the average of 100 values collected from \texttt{top} over a period of 200 seconds. \texttt{cpu-usage.sh} is used to collect these values and \texttt{average.pl} is used to average the values.
+
+During idle measurements, \texttt{containerd} used an average of 0.03\% of the CPU, \texttt{dockerd} used an average of 0.05\% of the CPU, and \texttt{containerd-shim} used an average of 0.01\% of the CPU.
+
+
+\section{Scripts}
+\subsection{average.pl}
+\begin{verbatim}
+#!/usr/bin/perl
+
+use strict;
+
+my $total = 0;
+my $count = 0;
+while (my $line = <>) {
+      $total += $line;
+      $count++;
+}
+print "Average = ", $total / $count, "\n";
+\end{verbatim}
+
+\subsection{cpu-usage.sh}
+\begin{verbatim}
+#!/bin/bash
+
+if [[ $# -lt 2 ]]
+then
+    echo "missing arguments"
+    exit
+fi
+
+pid="$1"
+output="$2"
+interval=1
+num=100
+if [[ $# -ge 3 ]]
+then
+    interval="$3"
+fi
+
+if [[ $# -eq 4 ]]
+then
+    num="$4"
+fi
+
+echo "recording CPU usage of process $pid $num times every 2*$interval seconds into $output..."
+
+rm "$output"
+
+for (( count=0; count<num; count++ ))
+do
+    top -b -n 2 -d "$interval" -p "$pid" | tail -1 | awk '{print $9}' >> "$output"
+done
+\end{verbatim}
 
 \end{document}
