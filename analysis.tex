@@ -9,7 +9,7 @@
 \maketitle
 
 \section{Introduction}
-This paper aims to summarize the impact of Docker on the store systems and processes. The current impact of Docker will be discussed and analyzed in Deployment Process, Resource Consumption, and Latency. The future impact of Docker will be discussed in Development Experience and Application Security. Any code, data, or assumptions used in the analyses will be listed in the Methods and Scripts.
+This paper aims to summarize the impact of Docker on the store systems and processes. The current impact of Docker will be discussed and analyzed in Deployment Process, Resource Consumption, and Latency. The future impact of Docker will be discussed in Development Experience and Application Security. Any code, data, or assumptions used in the analyses will be listed in Methods, and Scripts.
 
 \section{Deployment Process}
 Currently, the Z-neXt project employs Docker to manage a containerized Envoy application. Envoy routes requests from in-store applications to either an above-store or in-store service, depending on the health of the above-store service.
@@ -23,7 +23,9 @@ This solution could be made production-ready by hosting the Docker image in the 
 Deploying the native Envoy application to a store would require adding the tetrate-getenvoy package repository to the store. Once the package repository is added, the Envoy application can be installed with the getenvoy-envoy package.
 
 \section{Resource Consumption}
-The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to limit its access to system resources. A Docker container is able to make use of running Linux kernel and additionally provide the dependencies needed by the containerized software in a virtual environment. This approach provides a lightweight solution to software virtualization.
+The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to limit its access to system resources. A Docker container is able to make use of the running Linux kernel and additionally provide the dependencies needed by the containerized software in a virtual environment. This approach provides a lightweight solution to software virtualization.
+
+The resource consumption of a containerized application is broken up into two groups. The first group, labelled "Docker Dependencies", consists of the per-system applications such as the docker daemon, the container daemon, etc., that represent a static cost that does not increase with the number of containers. The other group, labelled "Containerized Application", consists of the container and the application itself, which gives an approximation of the per-application cost of a containerized application.
 
 \subsection{Idle Consumption}
 The following data was collected while no requests were being made to the Envoy application.
@@ -35,20 +37,20 @@ The following data was collected while no requests were being made to the Envoy 
  \hline
  Native Application & 36.3 & 93.9 & 0.47 \\
  \hline
- Containerized Application & 46.8 & 84.6 & 0.01 \\
+ Containerized Application & 79.8 & 84.6 & 0.55 \\
  \hline
  Docker Dependencies & 57.8 & 359.4 & 0.09 \\
  \hline\hline
- Increase (with Dependencies) & 68.3 & 350.1 & -0.37 \\
+ Increase (with Dependencies) & 101.3 & 350.1 & 0.17 \\
  \hline
- Increase (without Dependencies) & 10.5 & -9.3 & -0.46 \\
+ Increase (without Dependencies) & 43.5 & -9.3 & 0.08 \\
  \hline
 \end{tabular}
 \caption{The store resources consumed by the native application and the containerized application when idle.}
 \label{table:1}
 \end{table}
 
-It is important to note that the resources consumed by the Docker Dependencies represent a flat cost that  does not grow with the number of containers.
+The relative increase in Memory, Storage, and CPU consumption between the native application and the containerized application, without dependencies, are 120\% -10\%, and 17\%, respectively. Similar increases can be anticipated for each additional containerized application in the store.
 
 \subsection{Consumption Under Load}
 The following data was collected while the Envoy application was under a simulated load of 10 requests per second.
@@ -90,15 +92,16 @@ The Docker Dependencies row represents the packages added to use Docker in the s
 \subsection{Memory Consumption}
 The memory consumed by each process was equated with the physical memory being used by each process. The physical memory being used by each process was captured with \texttt{cat /proc/process\_id/status $|$ grep VmRSS}.
 
-The Docker Dependencies row represents the docker daemon and the processes required to run the docker daemon. This includes \texttt{containerd}, \texttt{dockerd}, and \texttt{containerd-shim}.
+The Containerized Application row represents the application and its corresponding Docker container. During idle measurements, containerized \texttt{envoy} consumed 32.3 MB of physical memory and the container consumed 47.5 MB.
 
-During idle measurements, \texttt{containerd} consumed 37.9 MB of physical memory, \texttt{dockerd} consumed 12.7 MB of physical memory, and \texttt{containerd-shim} consumed 7.3 MB of physical memory.
+The Docker Dependencies row represents the docker daemon and the processes required to run the docker daemon. This includes \texttt{containerd}, \texttt{dockerd}, and \texttt{containerd-shim}. During idle measurements, \texttt{containerd} consumed 37.9 MB of physical memory, \texttt{dockerd} consumed 12.7 MB of physical memory, and \texttt{containerd-shim} consumed 7.3 MB of physical memory.
 
 \subsection{CPU Consumption}
 CPU consumption for each process was determined by taking the average of 100 values collected from \texttt{top} over a period of 200 seconds. \texttt{cpu-usage.sh} is used to collect these values and \texttt{average.pl} is used to average the values.
 
-During idle measurements, \texttt{containerd} used an average of 0.03\% of the CPU, \texttt{dockerd} used an average of 0.05\% of the CPU, and \texttt{containerd-shim} used an average of 0.01\% of the CPU.
+During idle measurements, containerized \texttt{envoy} used an average of 0.54\% of the CPU, and the container used an average of 0.01\% of the CPU.
 
+During idle measurements, \texttt{containerd} used an average of 0.03\% of the CPU, \texttt{dockerd} used an average of 0.05\% of the CPU, and \texttt{containerd-shim} used an average of 0.01\% of the CPU.
 
 \section{Scripts}
 \subsection{average.pl}
@@ -151,3 +154,4 @@ done
 \end{verbatim}
 
 \end{document}
+
