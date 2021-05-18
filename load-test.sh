@@ -17,6 +17,6 @@ echo "making requests to $url every $interval seconds..."
 
 while true
 do
-    curl --insecure --silent "$url" &
+    curl --insecure --silent --output "/dev/null" "$url" &
     sleep "$interval"
 done

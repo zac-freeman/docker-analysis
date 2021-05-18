@@ -20,5 +20,5 @@ rm "$output"
 
 for (( count=0; count<num; count++ ))
 do
-    curl --insecure --silent --output "dev/null" --write-out "%{time_total}\n" "$url" >> "$output"
+    curl --insecure --silent --output "/dev/null" --write-out "%{time_total}\n" "$url" >> "$output"
 done
