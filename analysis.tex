@@ -10,23 +10,25 @@
 \maketitle
 
 \section{Introduction}
-This paper aims to summarize the impact of Docker on the store systems and processes. The current impact of Docker will be discussed and analyzed in Deployment Process, Resource Consumption, and Latency. The future impact of Docker will be discussed in Development Experience and Application Security. Any code, data, or assumptions used in the analyses will be listed in Methods, Data, and Scripts.
+This paper aims to summarize the impact of Docker on the store systems and processes. The current impact of Docker will be discussed and analyzed in Deployment Process, Resource Consumption, and Latency. The future impact of Docker will be discussed in Development Experience. Any code, data, or assumptions used in the analyses will be listed in Methods, Data, and Scripts.
 
 \section{Deployment Process}
 Currently, the Z-neXt project employs Docker to manage a containerized Envoy application. Envoy routes requests from in-store applications to either an above-store or in-store service, depending on the health of the above-store service.
 
 \subsection{Container Deployment}
-Deploying the Envoy container to a store requires that the Docker daemon be installed in the store and the official Envoy Docker image be downloaded from Docker Hub. Installing the Docker daemon necessitates enabling the ol7\_addons-prod package repository in the store. Once the image is downloaded to the store, it can be started by the Docker daemon.
+Deploying the Envoy container to a store requires that the Docker daemon be installed in the store and the official Envoy Docker image be downloaded from Docker Hub. Installing the Docker daemon necessitates enabling the \texttt{ol7\_addons-prod} package repository in the store. Once the image is downloaded to the store, it can be started by the Docker daemon.
 
 This solution could be made production-ready by hosting the Docker image in the AutoZone Artifactory, and retrieving it in the store from the AutoZone Artifactory.
 
 \subsection{Native Deployment}
-Deploying the native Envoy application to a store would require adding the tetrate-getenvoy package repository to the store. Once the package repository is added, the Envoy application can be installed with the getenvoy-envoy package.
+Deploying the native Envoy application to a store would require adding the \texttt{tetrate-getenvoy} package repository to the store. Once the package repository is added, the Envoy application can be installed with the \texttt{getenvoy-envoy} package.
+
+For the purposes of the Data Sync prototype, this proved too cumbersome a solution, as adding a new package repository (rather than just enabling an existing one) causes the \texttt{changeBranches} script to hang and fail. A resolution to this would involve the OS Conf team.
 
 \section{Resource Consumption}
-The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to limit its access to system resources. A Docker container is able to make use of the running Linux kernel and additionally provide the dependencies needed by the containerized software in a virtual environment. This approach provides a lightweight solution to software virtualization.
+The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to scope its access to system resources. A Docker container is able to make use of the host's kernel and additionally provide the dependencies needed by the containerized software in a virtual environment. This approach provides a lightweight solution to software virtualization.
 
-The resource consumption of a containerized application is broken up into two groups. The first group, labelled "Docker Dependencies", consists of the per-system applications such as the docker daemon, the container daemon, etc., that represent a static cost that does not increase with the number of containers. The other group, labelled "Containerized Application", consists of the container and the application itself, which gives an approximation of the per-application cost of a containerized application.
+The resource consumption of a containerized application is broken up into two groups. The first group, labelled "Docker Dependencies", consists of the per-system applications such as the docker daemon, the container daemon, etc., that represent a static cost that does not increase with the number of containerized applications. The other group, labelled "Containerized Application", consists of the container and the application itself, which gives an approximation of the per-application cost of containerizing an application in the store.
 
 \subsection{Idle Consumption}
 The following data was collected while no requests were being made to the Envoy application.
@@ -47,11 +49,15 @@ The following data was collected while no requests were being made to the Envoy 
  Increase (without Dependencies) & 43.5 & -9.3 & 0.08 \\
  \hline
 \end{tabular}
-\caption{The store resources consumed by the native application and the containerized application when idle.}
-\label{table:1}
+\caption{The store resources consumed by the native Envoy application and the containerized Envoy application when idle.}
+\label{idle-consumption}
 \end{table}
 
-The relative increase in Memory, Storage, and CPU consumption between the native application and the containerized application, without dependencies, are 120\%, -10\%, and 17\%, respectively. Similar increases can be anticipated for each additional containerized application in the store.
+The decrease in storage costs between the native application and the containerized application is likely the result of the docker container using a version of the Envoy application compiled without debugging symbols, rather than some efficiency provided by Docker. The takeaway here is that containerizing Envoy represented a negligible increase in storage consumption.
+
+The Docker Dependencies represent a non-negligible increase in memory, storage, and CPU time consumption. However, the most expensive resource, CPU time, sees the least consumption from the Docker Dependencies.
+
+The Containerized Application consumes significantly more memory than the Native Application, but each consume a similar amount of storage and CPU time. Similar increases in resource consumption can be anticipated for other containerized applications in the store.
 
 \subsection{Consumption Under Load}
 The following data was collected while the Envoy application was under a simulated load of 10 requests per second.
@@ -73,23 +79,75 @@ The following data was collected while the Envoy application was under a simulat
  \hline
 \end{tabular}
 \caption{The store resources consumed by the native application and the containerized application under load.}
-\label{table:2}
+\label{consumption-under-load}
 \end{table}
 
-The relative increase in Memory and CPU consumption between the native application and the containerized application, without dependencies, are 123\% and 4\%, respectively. Similar increases can be anticipated for each additional containerized application in the store.
+Under load, each of the Native Application, Containerized Application, and Docker Dependencies see in increase in memory and CPU time usage. However, there is an insignificant increase in the difference in resource consumption between the Native Application and the Containerized Application between the idle and load scenarios. Similar resource consumption patterns can be anticipated for other containerized application in the store.
 
 \subsection{Interpretation}
 Across the board, the containerized Envoy application requires more resources to run than the native Envoy application. Perhaps a more significant result is how the costs associated with Docker scale with the number of containers and the load applied to the application.
 
-The Docker Dependencies' usage of memory, storage, and CPU time does not scale with the number of containers or the load on the containerized application.
-
-The container that envelops the containerized application does not scale its resource consumption with the load on the containerized application. Containerizing an application represents a flat resource cost, with respect to load.
+The resource consumption of the Docker Dependencies and the container that envelops the containerized application does not increase with the load on the containerized application. Containerizing an application represents a static resource cost, with respect to load.
 
 \section{Latency}
+As mentioned in Resource Consumption, containers leverage the host's processes to minimize the cost of encapsulating an application. Reusing the host's network interface provides the additional benefit of reducing the latency introduced by the container.
+
+\subsection{Idle Latency}
+The following data was collected while no requests were being made to the Envoy application.
+
+\begin{table}[H]
+\begin{tabular}{ |c|c|c| }
+ \hline
+ & Average Latency (ms) & Standard Deviation (ms) \\
+ \hline
+ Native Application & 147 & 19 \\
+ \hline
+ Containerized Application & 136 & 16 \\
+ \hline\hline
+ Increase & -11 & \\
+ \hline
+\end{tabular}
+\caption{A comparison of the applications' response times while idle.}
+\label{idle-latency}
+\end{table}
+
+Given that the difference in average latency between the two applications falls well within both of their standard deviations, the negative increase should be interpreted as an insignificant difference in average latency calculated.
+
+\subsection{Latency Under Load}
+The following data was collected while the Envoy application was under a simulated load of 10 requests per second.
+
+\begin{table}[H]
+\begin{tabular}{ |c|c|c| }
+ \hline
+ & Average Latency (ms) & Standard Deviation (ms) \\
+ \hline
+ Native Application & 209 & 92 \\
+ \hline
+ Containerized Application & 180 & 52 \\
+ \hline\hline
+ Increase & -29 & \\
+ \hline
+\end{tabular}
+\caption{A comparison of the applications' response times while under load.}
+\label{latency-under-load}
+\end{table}
+
+Again, since the difference between the average latency of the two applications is well within their respective standard deviations, the decrease seen with Docker should be considered insignificant. It is interesting to note that standard deviations increase much more than the average latency when the applications are put under load, suggesting that the simulated load is causing a handful of requests to take much longer rather than causing all the requests to take slightly longer.
+
+\subsection{Interpretation}
+The containerized Envoy application does not incur a measurable increase in response times over the native Envoy application.
 
 \section{Development Experience}
+Docker provides a relatively approachable API for managing containers. Furthermore, Docker containers adhere to an industry-wide standard for containers, enabling easy transitions to other container management technologies.
 
-\section{Application Security}
+\subsection{Independence}
+Containers simplify the process of running store applications outside of a store by packaging applications with their dependencies. Since an application's dependencies must be declared explicitly in the definition of its container, it becomes easier and more natural for a developer to state explicitly the dependencies of the applications they create. Encouraging the use of Docker for store applications would make each application more independent of a store's operating system and a store's configuration.
+
+\subsection{Onboarding Acceleration}
+Docker and containers provide a common language for environment configuration that can replace some of the domain-specific knowledge required to develop on the stores. This common language can accelerate the onboarding process of new store developers by standardizing parts of the process and leveraging developer's existing knowledge of Docker and containers.
+
+\subsection{Reusability}
+Containers, and their definitions, can be broken down into logical pieces called layers. This enables solutions to environment problems to be made once, stored in version control, and reused indefinitely by future applications.
 
 \section{Methods}
 \subsection{Storage Consumption}
@@ -99,10 +157,16 @@ The size of each application was captured with \texttt{rpm -qi package\_name}. T
 The memory consumed by each process was equated with the physical memory being used by each process. The physical memory being used by each process was captured with \texttt{cat /proc/process\_id/status $|$ grep VmRSS}.
 
 \subsection{CPU Consumption}
-CPU consumption for each process was determined by taking the average of 100 values collected from \texttt{top} over a period of 200 seconds. \texttt{cpu-usage.sh} is used to collect these values and \texttt{average.pl} is used to average the values.
+CPU consumption for each process was determined by taking the average of 100 values collected from \texttt{top} over a period of 200 seconds. \texttt{cpu-usage.sh} is used to collect these values and \texttt{stat-analysis.pl} is used to average the collected values.
+
+While a standard deviation is produced for these collected values, it is not recorded as the average of the CPU usage is more akin to a single data point, than an average of data points. This is due to the extremely variable nature of the CPU usage of a process necessitating a series of measurements over time to approximate the expected CPU usage at one point in time.
+
+\subsection{Latency}
+Latency was measured by taking the average latency of 1000 requests to \\
+\texttt{https://localhost:10443/v1/items/en-us} in series using \texttt{latency-test.sh} to collect the latency values, \texttt{stat-analysis.pl} to average and standard deviation of the collected values. Envoy was configured to route these requests to a local service to reduce the effects of variable network quality on the latency measurements.
 
 \subsection{Load Testing}
-To simulate a heavy network load on the envoy applications, a \texttt{load-test.sh} was run to make 10 requests per second to \texttt{https://localhost:10443/v1/items/en-us}. Envoy was configured to route these requests to a local service, to avoid stressing an above store application.
+To simulate a heavy network load on the envoy applications, a \texttt{load-test.sh} was run to make 10 requests per second to \texttt{https://localhost:10443/v1/items/en-us}. Envoy was configured to route these requests to a local service to avoid stressing an above store application.
 
 \section{Data}
 \subsection{Storage Consumption}
@@ -125,15 +189,13 @@ The storage consumption listed for the Docker Dependencies represents the storag
  \hline
 \end{tabular}
 \caption{A breakdown of the storage space consumed by each package that contributes to total storage consumption listed for the Docker Dependencies.}
-\label{table:3}
+\label{storage-breakdown}
 \end{table}
 
 The storage consumption listed for the Containerized Application is just the storage occupied by the Docker image used by the Envoy container.
 
 \subsection{Memory and CPU Consumption}
 The Memory and CPU consumption listed for the Docker Dependencies represents the memory and CPU time consumed by the applications required to support Docker containers in the store. This includes the \texttt{dockerd}, \texttt{containerd}, and \texttt{containerd-shim}.
-
-The Memory and CPU consumption listed for the Containerized Application represents the memory and CPU time consumed by the Envoy application and the container that envelops it.
 
 \begin{table}[H]
 \begin{tabular}{ |c|c|c| }
@@ -150,7 +212,7 @@ The Memory and CPU consumption listed for the Containerized Application represen
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the applications underlying Docker while the containerized application is idle.}
-\label{table:4}
+\label{idle-consumption-breakdown}
 \end{table}
 
 \begin{table}[H]
@@ -168,8 +230,10 @@ The Memory and CPU consumption listed for the Containerized Application represen
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the applications underlying Docker while the containerized application is under load.}
-\label{table:5}
+\label{consumption-under-load-breakdown}
 \end{table}
+
+The Memory and CPU consumption listed for the Containerized Application represents the memory and CPU time consumed by the Envoy application and the container that envelops it.
 
 \begin{table}[H]
 \begin{tabular}{ |c|c|c| }
@@ -184,7 +248,7 @@ The Memory and CPU consumption listed for the Containerized Application represen
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the envoy application and its container while envoy is idle.}
-\label{table:6}
+\label{idle-app-consumption-breakdown}
 \end{table}
 
 \begin{table}[H]
@@ -200,23 +264,34 @@ The Memory and CPU consumption listed for the Containerized Application represen
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the envoy application and its container while envoy is under load.}
-\label{table:7}
+\label{app-consumption-under-load-breakdown}
 \end{table}
 
 \section{Scripts}
-\subsection{average.pl}
+\subsection{stat-analysis.pl}
 \begin{verbatim}
 #!/usr/bin/perl
 
 use strict;
 
+my @values = <>;
+
 my $total = 0;
 my $count = 0;
-while (my $line = <>) {
-      $total += $line;
-      $count++;
+while (my $value = <@values>) {
+    $total += $value;
+    $count++;
 }
-print "Average = ", $total / $count, "\n";
+
+my $average = $total / $count;
+my $variance = 0;
+while (my $value = <@values>) {
+    $variance += ($value - $average)**2 / $count;
+}
+
+print "Average = ", $average, "\n";
+print "Variance = ", $variance, "\n";
+print "Standard Deviation = ", sqrt($variance), "\n";
 \end{verbatim}
 
 \subsection{cpu-usage.sh}
@@ -276,6 +351,34 @@ while true
 do
     curl --insecure --silent --output "/dev/null" "$url" &
     sleep "$interval"
+done
+\end{verbatim}
+
+\subsection{latency-test.sh}
+\begin{verbatim}
+#!/bin/bash
+
+if [[ $# -lt 2 ]]
+then
+    echo "missing arguments"
+    exit
+fi
+
+url="$1"
+output="$2"
+num=100
+if [[ $# -eq 3 ]]
+then
+    num="$3"
+fi
+
+echo "recording response times for $num requests to $url into $output..."
+
+rm "$output"
+
+for (( count=0; count<num; count++ ))
+do
+    curl --insecure --silent --output "/dev/null" --write-out "%{time_total}\n" "$url" >> "$output"
 done
 \end{verbatim}
 
