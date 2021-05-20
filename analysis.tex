@@ -143,6 +143,10 @@ Docker provides a relatively approachable API for managing containers. Furthermo
 \subsection{Independence}
 Containers simplify the process of running store applications outside of a store by packaging applications with their dependencies. Since an application's dependencies must be declared explicitly in the definition of its container, it becomes easier and more natural for a developer to state explicitly the dependencies of the applications they create. Encouraging the use of Docker for store applications would make each application more independent of a store's operating system and a store's configuration.
 
+This independence from the store system enables developing, running, and testing a store application on a local machine, reducing the time between code change and application feedback and increasing developer productivity.
+
+Furthermore, containerizing an application smooths its path towards running in the "cloud", if that option is pursued for the stores.
+
 \subsection{Onboarding Acceleration}
 Docker and containers provide a common language for environment configuration that can replace some of the domain-specific knowledge required to develop on the stores. This common language can accelerate the onboarding process of new store developers by standardizing parts of the process and leveraging developer's existing knowledge of Docker and containers.
 
