@@ -3,10 +3,10 @@
 \usepackage{float}
 \usepackage{hyperref}
 
-\title{Comparison of Containerized and Native Applications in the Store}
-\author{Zac Freeman}
-
 \begin{document}
+
+\title{Comparison of Containerized and Native Applications in the Store}
+\author{Zac Freeman\\\\Reviewers:\\Paul Wiersma\\ Wesley Colin Wright}
 
 \maketitle
 
@@ -101,11 +101,11 @@ The following data was collected while no requests were being made to the Envoy 
  \hline
  & Average Latency (ms) & Standard Deviation (ms) \\
  \hline
- Native Application & 147 & 19 \\
+ Native Application & 162 & 31 \\
  \hline
- Containerized Application & 136 & 16 \\
+ Containerized Application & 156 & 39 \\
  \hline\hline
- Increase & -11 & \\
+ Increase & -6 & \\
  \hline
 \end{tabular}
 \caption{A comparison of the applications' response times while idle.}
@@ -122,11 +122,11 @@ The following data was collected while the Envoy application was under a simulat
  \hline
  & Average Latency (ms) & Standard Deviation (ms) \\
  \hline
- Native Application & 209 & 92 \\
+ Native Application & 217 & 75 \\
  \hline
- Containerized Application & 180 & 52 \\
+ Containerized Application & 213 & 72 \\
  \hline\hline
- Increase & -29 & \\
+ Increase & -4 & \\
  \hline
 \end{tabular}
 \caption{A comparison of the applications' response times while under load.}
@@ -155,6 +155,8 @@ Docker and containers provide a common language for environment configuration th
 Containers, and their definitions, can be broken down into logical pieces called layers. This enables solutions to environment problems to be made once, stored in version control, and reused indefinitely by future applications.
 
 \section{Methods}
+All scripts and commands were executed on \texttt{s8959.autozone.com}.
+
 \subsection{Storage Consumption}
 The size of each application was captured with \texttt{rpm -qi package\_name}. The size of the docker image used by the containerized application was captured from \texttt{docker images}.
 
@@ -167,13 +169,16 @@ CPU consumption for each process was determined by taking the average of 100 val
 While a standard deviation is produced for these collected values, it is not recorded as the average of the CPU usage is more akin to a single data point, than an average of data points. This is due to the extremely variable nature of the CPU usage of a process necessitating a series of measurements over time to approximate the expected CPU usage at one point in time.
 
 \subsection{Latency}
-Latency was measured by taking the average latency of 1000 requests to \\
-\texttt{https://localhost:10443/v1/items/en-us} in series using \texttt{latency-test.sh} to collect the latency values, \texttt{stat-analysis.pl} to average and standard deviation of the collected values. Envoy was configured to route these requests to a local service to reduce the effects of variable network quality on the latency measurements.
+Latency was measured by taking the average latency of 1000 requests to\\
+\texttt{https://localhost:10443/v1/items/en-us} in 0.5 seconds using\\
+\texttt{latency-test.sh} to collect the latency values, and \texttt{stat-analysis.pl} to calculate the average and standard deviation of the collected values. Envoy was configured to route these requests to a local service to reduce the effects of variable network quality on the latency measurements.
 
 \subsection{Load Testing}
-To simulate a heavy network load on the envoy applications, a \texttt{load-test.sh} was run to make 10 requests per second to \texttt{https://localhost:10443/v1/items/en-us}. Envoy was configured to route these requests to a local service to avoid stressing an above store application.
+To simulate a heavy network load on the envoy applications, \texttt{load-test.sh} was run to make 10 requests per second to \texttt{https://localhost:10443/v1/items/en-us}. Envoy was configured to route these requests to a local service to avoid stressing an above store application.
 
 \section{Data}
+All data was collected from \texttt{s8959.autozone.com}.
+
 \subsection{Storage Consumption}
 The storage consumption listed for the Docker Dependencies represents the storage consumed by the packages added to use Docker in the store. This includes \texttt{docker-engine}, \texttt{docker-cli}, \texttt{containerd}, and \texttt{container-selinux}.
 
@@ -373,20 +378,28 @@ fi
 
 url="$1"
 output="$2"
+interval=0.5
 num=100
-if [[ $# -eq 3 ]]
+if [[ $# -ge 3 ]]
 then
-    num="$3"
+    interval="$3"
 fi
 
-echo "recording response times for $num requests to $url into $output..."
+if [[ $# -eq 4 ]]
+then
+    num="$4"
+fi
+
+echo "recording response times for $num requests to $url made every $interval into $output..."
 
 rm "$output"
 
 for (( count=0; count<num; count++ ))
 do
-    curl --insecure --silent --output "/dev/null" --write-out "%{time_total}\n" "$url" >> "$output"
+    curl --insecure --silent --output "/dev/null" --write-out "%{time_total}\n" "$url" >> "$output" &
+    sleep "$interval"
 done
+
 \end{verbatim}
 
 \end{document}
