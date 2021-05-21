@@ -2,8 +2,10 @@
 \usepackage[utf8]{inputenc}
 \usepackage{float}
 \usepackage{hyperref}
-
+\usepackage{pgfplots}
+\pgfplotsset{width=11cm,compat=1.9}
 \begin{document}
+
 
 \title{Comparison of Containerized and Native Applications in the Store}
 \author{Zac Freeman\\\\Reviewers:\\Paul Wiersma\\ Wesley Colin Wright}
@@ -11,20 +13,14 @@
 \maketitle
 
 \section{Introduction}
-This paper aims to summarize the impact of Docker on the store systems and processes. The current impact of Docker will be discussed and analyzed in Deployment Process, Resource Consumption, and Latency. The future impact of Docker will be discussed in Development Experience. Any code, data, or assumptions used in the analyses will be listed in Methods, Data, and Scripts.
+This document aims to summarize the costs and benefits of deploying Envoy to the stores using Docker containers as a part of Retail Acceleration. The utility and resource overhead of containerizing Envoy within the Data Sync prototype will be discussed and analyzed in Resource Consumption, Latency, and Deployment Process. The utility and relevance of Docker to the store ecosystem will be discussed in Development Experience. Any code, data, or assumptions used in the analyses will be listed in Methodology, Data, and Scripts.
 
-\section{Deployment Process}
-Currently, the Z-neXt project employs Docker to manage a containerized Envoy application. Envoy routes requests from in-store applications to either an above-store or in-store service, depending on the health of the above-store service.
-
-\subsection{Container Deployment}
-Deploying the Envoy container to a store requires that the Docker daemon be installed in the store and the official Envoy Docker image be downloaded from Docker Hub. Installing the Docker daemon necessitates enabling the \texttt{ol7\_addons-prod} package repository in the store. Once the image is downloaded to the store, it can be started by the Docker daemon.
-
-This solution could be made production-ready by hosting the Docker image in the AutoZone Artifactory, and retrieving it in the store from the AutoZone Artifactory.
-
-\subsection{Native Deployment}
-Deploying the native Envoy application to a store would require adding the \texttt{tetrate-getenvoy} package repository to the store. Once the package repository is added, the Envoy application can be installed with the \texttt{getenvoy-envoy} package.
-
-For the purposes of the Data Sync prototype, this proved too cumbersome a solution, as adding a new package repository (rather than just enabling an existing one) causes the \texttt{changeBranches} script to hang and fail. A resolution to this would involve the OS Conf team.
+\section{Expected Outcomes}
+The goals of this document are to
+\begin{enumerate}
+    \item Inform Architecture's decision on containerizing Envoy and other applications, within the scopes of the Retail Acceleration Data Sync prototype and final product
+    \item Inform Architecture's future decisions on containerizing store applications by providing an approximation of the resource overhead of containerizing other store application
+\end{enumerate}
 
 \section{Resource Consumption}
 The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to scope its access to system resources. A Docker container is able to make use of the host's kernel and additionally provide the dependencies needed by the containerized software in a virtual environment. This approach provides a lightweight solution to software virtualization.
@@ -93,60 +89,83 @@ The resource consumption of the Docker Dependencies and the container that envel
 \section{Latency}
 As mentioned in Resource Consumption, containers leverage the host's processes to minimize the cost of encapsulating an application. Reusing the host's network interface provides the additional benefit of reducing the latency introduced by the container.
 
-\subsection{Idle Latency}
-The following data was collected while no requests were being made to the Envoy application.
+\subsection{Results}
+The following plot was constructed from data collected while the Native and Containerized Applications were under simulated loads of 0, 10, 20, and 30 requests per second, in addition to the requests made in order to survey their average response times.
 
-\begin{table}[H]
-\begin{tabular}{ |c|c|c| }
- \hline
- & Average Latency (ms) & Standard Deviation (ms) \\
- \hline
- Native Application & 162 & 31 \\
- \hline
- Containerized Application & 156 & 39 \\
- \hline\hline
- Increase & -6 & \\
- \hline
-\end{tabular}
-\caption{A comparison of the applications' response times while idle.}
-\label{idle-latency}
-\end{table}
+\begin{tikzpicture}
+\begin{axis}[
+    title={Native and Containerized Application Latency Under Simulated Loads},
+    xlabel={Load (requests/second)},
+    ylabel={Average Latency (ms)},
+    xmin=0, xmax=35,
+    ymin=-100, ymax=1100,
+    xtick={0,10,20,30},
+    ytick={0,200,400,600,800,1000},
+    legend pos=north west,
+    ymajorgrids=true,
+]
 
-Given that the difference in average latency between the two applications falls well within both of their standard deviations, the negative increase should be interpreted as an insignificant difference in average latency calculated.
+\addplot[
+    color=blue,
+    mark=square,
+    ]
+    coordinates {
+        (0, 162)(10, 217)(20, 453)(30,1025)
+    };
+    \addlegendentry{Native Application}
 
-\subsection{Latency Under Load}
-The following data was collected while the Envoy application was under a simulated load of 10 requests per second.
+\addplot[
+    color=red,
+    mark=triangle,
+    ]
+    coordinates {
+        (0, 156)(10, 213)(20, 454)(30,962)
+    };
+    \addlegendentry{Containerized Application}
+    
+\addplot[
+    color=purple,
+    mark=*,
+    ]
+    coordinates {
+        (0, -6)(10, -4)(20, 1)(30,-63)
+    };
+    \addlegendentry{Increase}
+\end{axis}
+\end{tikzpicture}
 
-\begin{table}[H]
-\begin{tabular}{ |c|c|c| }
- \hline
- & Average Latency (ms) & Standard Deviation (ms) \\
- \hline
- Native Application & 217 & 75 \\
- \hline
- Containerized Application & 213 & 72 \\
- \hline\hline
- Increase & -4 & \\
- \hline
-\end{tabular}
-\caption{A comparison of the applications' response times while under load.}
-\label{latency-under-load}
-\end{table}
+Under each simulated load, the difference between the average latencies of the Native and Containerized Applications was well within the standard deviation of each average latency. The negative increase in latency from the Containerized Application represents an insignificant difference in the calculated average latencies.
 
-Again, since the difference between the average latency of the two applications is well within their respective standard deviations, the decrease seen with Docker should be considered insignificant. It is interesting to note that standard deviations increase much more than the average latency when the applications are put under load, suggesting that the simulated load is causing a handful of requests to take much longer rather than causing all the requests to take slightly longer.
+It is interesting to note that standard deviations increase much more than the corresponding average latency when the applications are put under load, suggesting that the simulated load is causing a handful of requests to take much longer rather than causing all the requests to take slightly longer.
 
 \subsection{Interpretation}
 The containerized Envoy application does not incur a measurable increase in response times over the native Envoy application.
 
+While the trend in the difference in latencies is promising, the trend of the latencies themselves are concerning. The underlying cause of the superlinear increase in average latency should be investigated to determine if components of the Data Sync prototype need to be reconsidered to meet the needs of the store.
+
+\section{Deployment Process}
+Currently, the Z-neXt project employs Docker to manage a containerized Envoy application. Envoy routes requests from in-store applications to either an above-store or in-store service, depending on the health of the above-store service.
+
+\subsection{Container Deployment}
+Deploying the Envoy container to a store requires that the Docker daemon be installed in the store and the official Envoy Docker image be downloaded from Docker Hub. Installing the Docker daemon necessitates enabling the \texttt{ol7\_addons-prod} package repository in the store. Once the image is downloaded to the store, it can be started by the Docker daemon.
+
+This solution could be made production-ready by hosting the Docker image in the AutoZone Artifactory, and retrieving it in the store from the AutoZone Artifactory.
+
+\subsection{Native Deployment}
+Deploying the native Envoy application to a store would require adding the \texttt{tetrate-getenvoy} package repository to the store. Once the package repository is added, the Envoy application can be installed with the \texttt{getenvoy-envoy} package.
+
+For the purposes of the Data Sync prototype, this proved too cumbersome a solution, as adding a new package repository (rather than just enabling an existing one) causes the \texttt{changeBranches} script to hang and fail. A resolution to this would involve the OS Conf team.
+
 \section{Development Experience}
 Docker provides a relatively approachable API for managing containers. Furthermore, Docker containers adhere to an industry-wide standard for containers, enabling easy transitions to other container management technologies.
 
-\subsection{Independence}
-Containers simplify the process of running store applications outside of a store by packaging applications with their dependencies. Since an application's dependencies must be declared explicitly in the definition of its container, it becomes easier and more natural for a developer to state explicitly the dependencies of the applications they create. Encouraging the use of Docker for store applications would make each application more independent of a store's operating system and a store's configuration.
-
-This independence from the store system enables developing, running, and testing a store application on a local machine, reducing the time between code change and application feedback and increasing developer productivity.
+\subsection{Loose Coupling}
+By loosening the coupling between the store applications and the store system, containers enable developing, running, and testing a store application on a local machine, reducing the time between code change and application feedback and increasing developer productivity.
 
 Furthermore, containerizing an application smooths its path towards running in the "cloud", if that option is pursued for the stores.
+
+\subsection{Portability}
+Containers simplify the process of running store applications outside of a store by packaging applications with their dependencies. Since an application's dependencies must be declared explicitly in the definition of its container, it becomes easier and more natural for a developer to state explicitly the dependencies of the applications they create. Encouraging the use of Docker for store applications would make each application more independent of a store's operating system and a store's configuration.
 
 \subsection{Onboarding Acceleration}
 Docker and containers provide a common language for environment configuration that can replace some of the domain-specific knowledge required to develop on the stores. This common language can accelerate the onboarding process of new store developers by standardizing parts of the process and leveraging developer's existing knowledge of Docker and containers.
@@ -154,7 +173,10 @@ Docker and containers provide a common language for environment configuration th
 \subsection{Reusability}
 Containers, and their definitions, can be broken down into logical pieces called layers. This enables solutions to environment problems to be made once, stored in version control, and reused indefinitely by future applications.
 
-\section{Methods}
+\subsection{Reproducibility}
+Containers enable much more of the store system's state can be encoded into version control, which makes more said state reproducible and auditable.
+
+\section{Methodology}
 All scripts and commands were executed on \texttt{s8959.autozone.com}.
 
 \subsection{Storage Consumption}
@@ -193,7 +215,7 @@ The storage consumption listed for the Docker Dependencies represents the storag
  \hline
  \texttt{containerd} & 87.0 \\
  \hline
- \texttt{container-selinux} & $>$0.1 \\
+ \texttt{container-selinux} & $<$0.1 \\
  \hline\hline
  Total & 359.4 \\
  \hline
@@ -234,7 +256,7 @@ The Memory and CPU consumption listed for the Docker Dependencies represents the
  \hline
  \texttt{containerd} & 14.8 & 0.03 \\
  \hline
- \texttt{containerd-shim} & 7.3 & $>$0.01 \\
+ \texttt{containerd-shim} & 7.3 & $<$0.01 \\
  \hline\hline
  Total & 97.2 & 0.05 \\
  \hline
@@ -275,6 +297,73 @@ The Memory and CPU consumption listed for the Containerized Application represen
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the envoy application and its container while envoy is under load.}
 \label{app-consumption-under-load-breakdown}
+\end{table}
+
+\subsection{Latency}
+The following data was collected while the Envoy application was under a simulated load of 0, 10, 20, and 30 requests per second.
+
+\begin{table}[H]
+\begin{tabular}{ |c|c|c| }
+ \hline
+ & Average Latency (ms) & Standard Deviation (ms) \\
+ \hline
+ Native Application & 162 & 31 \\
+ \hline
+ Containerized Application & 156 & 39 \\
+ \hline\hline
+ Increase & -6 & \\
+ \hline
+\end{tabular}
+\caption{A comparison of the applications' response times while idle.}
+\label{idle-latency}
+\end{table}
+
+\begin{table}[H]
+\begin{tabular}{ |c|c|c| }
+ \hline
+ & Average Latency (ms) & Standard Deviation (ms) \\
+ \hline
+ Native Application & 217 & 75 \\
+ \hline
+ Containerized Application & 213 & 72 \\
+ \hline\hline
+ Increase & -4 & \\
+ \hline
+\end{tabular}
+\caption{A comparison of the applications' response times while under a load of 10 requests per second.}
+\label{latency-under-load-10}
+\end{table}
+
+\begin{table}[H]
+\begin{tabular}{ |c|c|c| }
+ \hline
+ & Average Latency (ms) & Standard Deviation (ms) \\
+ \hline
+ Native Application & 453 & 264 \\
+ \hline
+ Containerized Application & 454 & 278 \\
+ \hline\hline
+ Increase & 1 & \\
+ \hline
+\end{tabular}
+\caption{A comparison of the applications' response times while under a load of 20 requests per second.}
+\label{latency-under-load-20}
+\end{table}
+
+\begin{table}[H]
+\begin{tabular}{ |c|c|c| }
+ \hline
+ & Average Latency (ms) & Standard Deviation (ms) \\
+ \hline
+ Native Application & 1025 & 640 \\
+ \hline
+ Containerized Application & 962 & 564 \\
+ \hline\hline
+ Increase & -63 & \\
+ \hline
+\end{tabular}
+\caption{A comparison of the applications' response times while under a load of 30 requests per second.}
+\label{latency-under-load-30}
 \end{table}
 
 \section{Scripts}
