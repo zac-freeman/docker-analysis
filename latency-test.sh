@@ -20,7 +20,7 @@ then
     num="$4"
 fi
 
-echo "recording response times for $num requests to $url made every $interval into $output..."
+echo "recording response times for $num requests to $url made every $interval seconds into $output..."
 
 rm "$output"
 
