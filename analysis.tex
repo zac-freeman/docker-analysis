@@ -12,19 +12,19 @@
 \maketitle
 
 \section{Introduction}
-This document aims to summarize the costs and benefits of deploying Envoy to the stores using Docker containers as a part of Retail Acceleration. The utility and resource overhead of containerizing Envoy within the Data Sync prototype will be discussed and analyzed in Resource Consumption, Latency, and Deployment Process. The utility and relevance of Docker to the store ecosystem will be discussed in Development Experience. Any code, data, or assumptions used in the analyses will be listed in Methodology, Data, and Scripts.
+This document aims to summarize the costs and benefits of deploying Envoy to the stores using Docker containers as a part of Retail Acceleration. The purpose and resource overhead of containerizing Envoy within the Data Sync prototype will be discussed and analyzed in Resource Consumption, Latency, and Deployment Process. The utility and relevance of Docker to the store ecosystem will be discussed in Development Experience. Any code, data, or assumptions used in the analyses will be listed in Methodology, Data, and Scripts.
 
 \section{Expected Outcomes}
 The goals of this document are to
 \begin{enumerate}
     \item Inform Architecture's decision on containerizing Envoy and other applications, within the scopes of the Retail Acceleration Data Sync prototype and final product
-    \item Inform Architecture's future decisions on containerizing store applications by providing an approximation of the resource overhead of containerizing other store application
+    \item Inform Architecture's future decisions on containerizing store applications by providing an approximation of the resource overhead of containerizing other store applications
 \end{enumerate}
 
 \section{Resource Consumption}
 The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to scope its access to system resources. A Docker container is able to make use of the host's kernel and additionally provide the dependencies needed by the containerized software in a virtual environment. This approach provides a lightweight solution to software virtualization.
 
-The resource consumption of a containerized application is broken up into two groups. The first group, labelled "Docker Dependencies", consists of the per-system applications such as the docker daemon, the container daemon, etc., that represent a static cost that does not increase with the number of containerized applications. The other group, labelled "Containerized Application", consists of the container and the application itself, which gives an approximation of the per-application cost of containerizing an application in the store.
+The resource consumption of a containerized application is broken up into two groups. The first group, labelled "Docker Dependencies", consists of the per-system applications such as the docker daemon, the container daemon, etc., that support any number of containerized applications. The other group, labelled "Containerized Application", consists of the container and the application itself, which gives an approximation of the per-application cost of containerizing an application in the store.
 
 \subsection{Storage Consumption}
 The storage consumption was recorded while the applications were idle, under the assumption that putting the applications under load would not impact their installed size.
@@ -95,6 +95,10 @@ The following plot was constructed from data collected while the Native and Cont
 \end{axis}
 \end{tikzpicture}
 
+The Containerized Application (with and without Docker Dependencies) represents a fixed cost with respect to load on the containerized Envoy application.
+
+The apparent decrease in Memory Consumption of the Containerized Application with respect to load is a result of variability in the memory consumption measurements.
+
 \subsection{CPU Consumption}
 The following plot was constructed from data collected while the Native and Containerized Applications were under simulated loads of 0, 10, 20, and 30 requests per second.
 
@@ -139,16 +143,20 @@ The following plot was constructed from data collected while the Native and Cont
 \end{axis}
 \end{tikzpicture}
 
+The Containerized Application (with and without Docker Dependencies) represent a small increase in CPU Consumption over the native Application.
+
+The divergence at 30 requests/second is most likely a result of some variability in the method of measurement of CPU Consumption, but could warrant some more rigorous investigation.
+
 \subsection{Interpretation}
-Across the board, the containerized Envoy application requires more resources to run than the native Envoy application. Perhaps a more significant result is how the costs associated with Docker scale with the number of containers and the load applied to the application.
+Across the board, the containerized Envoy application requires more resources to run than the native Envoy application. Storage Consumption sees the greatest relative increase, followed by Memory Consumption, then CPU Consumption.
 
-The Docker Dependencies represent a non-negligible increase in memory, storage, and CPU time consumption. However, the most expensive resource, CPU time, sees the least consumption from the Docker Dependencies.
+While the Storage Consumption of the Containerized Application (with Dependencies) represents a 4 fold increase over the native application, the increase in Storage Consumption is entirely due to the Docker Dependencies. The more containers that are running on the store, the smaller the relative increase in Storage Consumption becomes.
 
-The Containerized Application consumes significantly more memory than the Native Application, but each consume a similar amount of storage and CPU time. Similar increases in resource consumption can be anticipated for other containerized applications in the store.
+A similar observation can be made for the Memory Consumption of the Docker Dependencies - the more containers that are running on the store, the smaller the relative increase in Memory Consumption becomes. The remaining third of the increase in Memory Consumption, taken by the container, can potentially be optimized to a much smaller value.
 
-Under load, each of the Native Application, Containerized Application, and Docker Dependencies see in increase in memory and CPU time usage. However, there is an insignificant increase in the difference in resource consumption between the Native Application and the Containerized Application between the idle and load scenarios. Similar resource consumption patterns can be anticipated for other containerized application in the store.
+The increase in CPU Consumption is regular, but small. The typical increase in CPU Consumption between the Native Application and the Containerized Application (with Docker Dependencies) is about 5 times smaller than the CPU Consumption of the Native Application when idle.
 
-The resource consumption of the Docker Dependencies and the container that envelops the containerized application does not increase with the load on the containerized application. Containerizing an application represents a static resource cost, with respect to load.
+Furthermore, each of these increases in resource consumption do not scale with the load on the application. That is, containerizing an application represents a static resource cost with respect to load.
 
 \section{Latency}
 As mentioned in Resource Consumption, containers leverage the host's processes to minimize the cost of encapsulating an application. Reusing the host's network interface provides the additional benefit of reducing the latency introduced by the container.
@@ -227,7 +235,7 @@ Docker and containers provide a common language for environment configuration th
 Containers, and their definitions, can be broken down into logical pieces called layers. This enables solutions to environment problems to be made once, stored in version control, and reused indefinitely by future applications.
 
 \subsection{Reproducibility}
-Containers enable much more of the store system's state can be encoded into version control, which makes more said state reproducible and auditable.
+Containers enable much more of the store system's state can be encoded into version control, which makes more of said state reproducible and auditable.
 
 \section{Methodology}
 All scripts and commands were executed on \texttt{s8959.autozone.com}.
@@ -245,11 +253,11 @@ While a standard deviation is produced for these collected values, it is not rec
 
 \subsection{Latency}
 Latency was measured by taking the average latency of 1000 requests to\\
-\texttt{https://localhost:10443/v1/items/en-us} in 0.5 seconds using\\
+\texttt{https://localhost:10443/v1/items/en-us} in 0.5 second intervals using\\
 \texttt{latency-test.sh} to collect the latency values, and \texttt{stat-analysis.pl} to calculate the average and standard deviation of the collected values. Envoy was configured to route these requests to a local service to reduce the effects of variable network quality on the latency measurements.
 
 \subsection{Load Testing}
-To simulate a heavy network load on the envoy applications, \texttt{load-test.sh} was run to make 10 requests per second to \texttt{https://localhost:10443/v1/items/en-us}. Envoy was configured to route these requests to a local service to avoid stressing an above store application.
+To simulate various network loads on the envoy applications, \texttt{load-test.sh} was run to make 10, 20, or 30 requests per second to \texttt{https://localhost:10443/v1/items/en-us}. Envoy was configured to route these requests to a local service to avoid stressing the above store application.
 
 \section{Data}
 All data was collected from \texttt{s8959.autozone.com}.
