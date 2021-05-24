@@ -72,7 +72,7 @@ The following plot was constructed from data collected while the Native and Cont
     mark=square,
     ]
     coordinates {
-        (0, 36.3)(10, 38.5)
+        (0, 36.3)(10, 38.5)(20, 39.6)(30, 39.9)
     };
     \addlegendentry{Native Application}
 
@@ -81,7 +81,7 @@ The following plot was constructed from data collected while the Native and Cont
     mark=triangle,
     ]
     coordinates {
-        (0, 79.8)(10, 85.9)
+        (0, 79.8)(10, 85.9)(20, 95.2)(30, 86.8)
     };
     \addlegendentry{Containerized Application}
 \addplot[
@@ -89,7 +89,7 @@ The following plot was constructed from data collected while the Native and Cont
     mark=o,
     ]
     coordinates {
-        (0, 173)(10, 183.1)
+        (0, 173)(10, 183.1)(20, 170.1)(30, 161.4)
     };
     \addlegendentry{Containerized Application (with Dependencies)}
 \end{axis}
@@ -104,9 +104,9 @@ The following plot was constructed from data collected while the Native and Cont
     xlabel={Load (requests/second)},
     ylabel={CPU Consumption (\%)},
     xmin=0, xmax=35,
-    ymin=0, ymax=5,
+    ymin=0, ymax=7,
     xtick={0,10,20,30},
-    ytick={0,1,2,3,4,5},
+    ytick={0,1,2,3,4,5,6,7},
     legend style={at={(0.5,-0.2)},anchor=north},
     ymajorgrids=true,
 ]
@@ -116,7 +116,7 @@ The following plot was constructed from data collected while the Native and Cont
     mark=square,
     ]
     coordinates {
-        (0, 0.47)(10, 3.75)
+        (0, 0.47)(10, 3.75)(20, 4.98)(30, 5.55)
     };
     \addlegendentry{Native Application}
 
@@ -125,7 +125,7 @@ The following plot was constructed from data collected while the Native and Cont
     mark=triangle,
     ]
     coordinates {
-        (0, 0.55)(10, 3.91)
+        (0, 0.55)(10, 3.91)(20, 4.96)(30, 6.08)
     };
     \addlegendentry{Containerized Application}
 \addplot[
@@ -133,7 +133,7 @@ The following plot was constructed from data collected while the Native and Cont
     mark=o,
     ]
     coordinates {
-        (0, 0.64)(10, 3.96)
+        (0, 0.64)(10, 3.96)(20, 5.04)(30, 6.13)
     };
     \addlegendentry{Containerized Application (with Dependencies)}
 \end{axis}
@@ -295,7 +295,7 @@ The Memory and CPU consumption listed for the Native Application represents just
  \hline
    & Memory (MB) & CPU (\%) \\ 
  \hline
- Native Application & 36.3 & 0.47 \\
+ Native Envoy & 36.3 & 0.47 \\
  \hline
  Containerized Envoy & 32.3 & 0.54 \\
  \hline
@@ -327,7 +327,7 @@ The Memory and CPU consumption listed for the Native Application represents just
  \hline
    & Memory (MB) & CPU (\%) \\ 
  \hline
- Native Application & 38.5 & 3.75 \\
+ Native Envoy & 38.5 & 3.75 \\
  \hline
  Containerized Envoy & 38.9 & 3.90 \\
  \hline
@@ -359,27 +359,27 @@ The Memory and CPU consumption listed for the Native Application represents just
  \hline
    & Memory (MB) & CPU (\%) \\ 
  \hline
- Native Application & 0 & 0 \\
+ Native Envoy & 39.6 & 4.98 \\
  \hline
- Containerized Envoy & 0 & 0 \\
+ Containerized Envoy & 48.2 & 4.96 \\
  \hline
- Docker Container & 0 & 0 \\
+ Docker Container & 47.0 & $<$0.01 \\
  \hline
- \texttt{dockerd} & 0 & 0 \\
+ \texttt{dockerd} & 54.3 & 0.06 \\
  \hline
- \texttt{containerd} & 0 & 0 \\
+ \texttt{containerd} & 13.1 & 0.02 \\
  \hline
- \texttt{containerd-shim} & 0 & 0 \\
+ \texttt{containerd-shim} & 7.5 & $<$0.01 \\
  \hline\hline
- Native Application & 0 & 0 \\
+ Native Application & 39.6 & 4.98 \\
  \hline
- Containerized Application & 0 & 0 \\
+ Containerized Application & 95.2 & 4.96 \\
  \hline
- Docker Dependencies & 0 & 0 \\
+ Docker Dependencies & 74.9 & 0.08 \\
  \hline\hline
- Increase (with Dependencies) & 0 & 0 \\
+ Increase (with Dependencies) & 130.5 & 0.06 \\
  \hline
- Increase (without Dependencies) & 0 & 0 \\
+ Increase (without Dependencies) & 55.6 & -0.02 \\
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the applications while under a load of 20 requests per second.}
@@ -391,32 +391,34 @@ The Memory and CPU consumption listed for the Native Application represents just
  \hline
    & Memory (MB) & CPU (\%) \\ 
  \hline
- Native Application & 0 & 0 \\
+ Native Envoy & 39.9 & 5.55 \\
  \hline
- Containerized Envoy & 0 & 0 \\
+ Containerized Envoy & 39.9 & 6.08 \\
  \hline
- Docker Container & 0 & 0 \\
+ Docker Container & 46.9 & $<$0.01 \\
  \hline
- \texttt{dockerd} & 0 & 0 \\
+ \texttt{dockerd} & 54.5 & 0.03 \\
  \hline
- \texttt{containerd} & 0 & 0 \\
+ \texttt{containerd} & 13.0 & 0.02 \\
  \hline
- \texttt{containerd-shim} & 0 & 0 \\
+ \texttt{containerd-shim} & 7.1 & $<$0.01 \\
  \hline\hline
- Native Application & 0 & 0 \\
+ Native Application & 39.9 & 5.55 \\
  \hline
- Containerized Application & 0 & 0 \\
+ Containerized Application & 86.8 & 6.08 \\
  \hline
- Docker Dependencies & 0 & 0 \\
+ Docker Dependencies & 74.6 & 0.05 \\
  \hline\hline
- Increase (with Dependencies) & 0 & 0 \\
+ Increase (with Dependencies) & 121.5 & 0.58 \\
  \hline
- Increase (without Dependencies) & 0 & 0 \\
+ Increase (without Dependencies) & 46.9 & 0.53 \\
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the applications while under a load of 30 requests per second.}
 \label{consumption-breakdown-under-load-30}
 \end{table}
+
+The amount of memory consumed by the Envoy applications appear to grow with time when under load, and the memory consumed does not decrease when the simulated load is removed.
 
 \subsection{Latency}
 The following data was collected while the Envoy application was under a simulated load of 0, 10, 20, and 30 requests per second.
