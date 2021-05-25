@@ -200,7 +200,7 @@ The following plot was constructed from data collected while the Native and Cont
 Under each simulated load, the difference between the average latencies of the Native and Containerized Applications was well within the standard deviation of each average latency. The negative increase in latency from the Containerized Application represents an insignificant difference in the calculated average latencies.
 
 \subsection{Interpretation}
-The containerized Envoy application does not incur a measurable increase in response times over the native Envoy application.
+The containerized Envoy application does not incur a measurable increase in response times over the native Envoy application. This analysis of the relative performance in the store agrees with similar research from IBM's research report, \href{https://dominoweb.draco.res.ibm.com/reports/rc25482.pdf}{\textit{An Updated Performance Comparison of Virtual Machines and Linux Containers}}.
 
 While the trend in the difference in latencies is promising, the trend of the latencies themselves are concerning. The underlying cause of the superlinear increase in average latency should be investigated to determine if components of the Data Sync prototype need to be reconsidered to meet the needs of the store.
 
@@ -208,14 +208,14 @@ While the trend in the difference in latencies is promising, the trend of the la
 Currently, the Z-neXt project employs Docker to manage a containerized Envoy application. Envoy routes requests from in-store applications to either an above-store or in-store service, depending on the health of the above-store service.
 
 \subsection{Container Deployment}
-Deploying the Envoy container to a store requires that the Docker daemon be installed in the store and the official Envoy Docker image be downloaded from Docker Hub. Installing the Docker daemon necessitates enabling the \texttt{ol7\_addons-prod} package repository in the store. Once the image is downloaded to the store, it can be started by the Docker daemon.
+For the Data Sync prototype, deploying the Envoy container to a store involves installing the Docker daemon in the store, then downloading the official Envoy Docker image from Docker Hub. Installing the Docker daemon necessitates enabling the \texttt{ol7\_addons-prod} package repository in the store. Once the image is downloaded to the store, it can be started by the Docker daemon.
 
-This solution could be made production-ready by hosting the Docker image in the AutoZone Artifactory, and retrieving it in the store from the AutoZone Artifactory.
+This solution could be made production-ready by hosting the Docker image in the AutoZone Artifactory, and retrieving it in the store from the AutoZone Artifactory. Furthermore, the store deployment strategies would need to be extended to cover containers: preemptive container downloads, container lifecycle management, \texttt{yum}-esque dependency management, etc.
 
 \subsection{Native Deployment}
 Deploying the native Envoy application to a store would require adding the \texttt{tetrate-getenvoy} package repository to the store. Once the package repository is added, the Envoy application can be installed with the \texttt{getenvoy-envoy} package.
 
-For the purposes of the Data Sync prototype, this proved too cumbersome a solution, as adding a new package repository (rather than just enabling an existing one) causes the \texttt{changeBranches} script to hang and fail. A resolution to this would involve the OS Conf team.
+For the purposes of the Data Sync prototype, this solution necessitates micromanaging the added package repository. The containerized solution allows us more flexibility and velocity without sacrificing any opportunities for the prototype.
 
 \section{Development Experience}
 Docker provides a relatively approachable API for managing containers. Furthermore, Docker containers adhere to an industry-wide standard for containers, enabling easy transitions to other container management technologies.
