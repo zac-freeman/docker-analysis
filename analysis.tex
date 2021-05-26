@@ -12,13 +12,13 @@
 \maketitle
 
 \section{Introduction}
-This document aims to summarize the costs and benefits of deploying Envoy to the stores using Docker containers as a part of Retail Acceleration. The purpose and resource overhead of containerizing Envoy within the Data Sync prototype will be discussed and analyzed in Resource Consumption, Latency, and Deployment Process. The utility and relevance of Docker to the store ecosystem will be discussed in Development Experience. Any code, data, or assumptions used in the analyses will be listed in Methodology, Data, and Scripts.
+This document aims to summarize the costs and benefits of deploying Envoy to the stores using Docker containers as a part of Retail Acceleration. The current utility and resource overhead of containerizing Envoy within the Data Sync prototype will be discussed and analyzed in Resource Consumption, Latency, and Deployment Process. The relevance of Docker to the store ecosystem will be discussed in Development Experience. Any code, data, or assumptions used in the analyses will be listed in Methodology, Data, and Scripts.
 
 \section{Expected Outcomes}
-The goals of this document are to
+The goals of this document are to inform Architecture's decision on:
 \begin{enumerate}
-    \item Inform Architecture's decision on containerizing Envoy and other applications, within the scopes of the Retail Acceleration Data Sync prototype and final product
-    \item Inform Architecture's future decisions on containerizing store applications by providing an approximation of the resource overhead of containerizing other store applications
+    \item containerizing Envoy for the Retail Acceleration Data Sync prototype and final product
+    \item containerizing further store applications, by providing an approximation of the resource overhead of containerizing other store applications
 \end{enumerate}
 
 \section{Resource Consumption}
@@ -52,7 +52,7 @@ The storage consumption was recorded while the applications were idle, under the
 The decrease in storage costs between the native application and the containerized application is likely the result of the docker container using a version of the Envoy application compiled without debugging symbols, rather than some efficiency provided by Docker. The takeaway here is that containerizing Envoy represented a negligible increase in storage consumption.
 
 \subsection{Memory Consumption}
-The following plot was constructed from data collected while the Native and Containerized Applications were under simulated loads of 0, 10, 20, and 30 requests per second.
+The following plot was constructed from data collected while the native and containerized Envoy applications were under simulated loads of 0, 10, 20, and 30 requests per second.
 
 \begin{tikzpicture}
 \begin{axis}[
@@ -100,7 +100,7 @@ The Containerized Application (with and without Docker Dependencies) represents 
 The apparent decrease in Memory Consumption of the Containerized Application with respect to load is a result of variability in the memory consumption measurements.
 
 \subsection{CPU Consumption}
-The following plot was constructed from data collected while the Native and Containerized Applications were under simulated loads of 0, 10, 20, and 30 requests per second.
+The following plot was constructed from data collected while the native and containerized Envoy applications were under simulated loads of 0, 10, 20, and 30 requests per second.
 
 \begin{tikzpicture}
 \begin{axis}[
@@ -143,7 +143,7 @@ The following plot was constructed from data collected while the Native and Cont
 \end{axis}
 \end{tikzpicture}
 
-The Containerized Application (with and without Docker Dependencies) represent a small increase in CPU Consumption over the native Application.
+The Containerized Application (with and without Docker Dependencies) represent a small increase in CPU Consumption over the Native Application.
 
 The divergence at 30 requests/second is most likely a result of some variability in the method of measurement of CPU Consumption, but could warrant some more rigorous investigation.
 
@@ -162,7 +162,7 @@ Furthermore, each of these increases in resource consumption do not scale with t
 As mentioned in Resource Consumption, containers leverage the host's processes to minimize the cost of encapsulating an application. Reusing the host's network interface provides the additional benefit of reducing the latency introduced by the container.
 
 \subsection{Results}
-The following plot was constructed from data collected while the Native and Containerized Applications were under simulated loads of 0, 10, 20, and 30 requests per second, in addition to the requests made in order to survey their average response times.
+The following plot was constructed from data collected while the native and containerized Envoy applications were under simulated loads of 0, 10, 20, and 30 requests per second, in addition to the requests made in order to survey their average response times.
 
 \begin{tikzpicture}
 \begin{axis}[
@@ -202,7 +202,7 @@ Under each simulated load, the difference between the average latencies of the N
 \subsection{Interpretation}
 The containerized Envoy application does not incur a measurable increase in response times over the native Envoy application. This analysis of the relative performance in the store agrees with similar research from IBM's research report, \href{https://dominoweb.draco.res.ibm.com/reports/rc25482.pdf}{\textit{An Updated Performance Comparison of Virtual Machines and Linux Containers}}.
 
-While the trend in the difference in latencies is promising, the trend of the latencies themselves are concerning. The underlying cause of the superlinear increase in average latency should be investigated to determine if components of the Data Sync prototype need to be reconsidered to meet the needs of the store.
+While the trend in the difference in latencies is promising, the trend of the latencies themselves is concerning. The underlying cause of the superlinear increase in average latency should be investigated to determine if components of the Data Sync prototype need to be reconsidered to meet the needs of the store.
 
 \section{Deployment Process}
 Currently, the Z-neXt project employs Docker to manage a containerized Envoy application. Envoy routes requests from in-store applications to either an above-store or in-store service, depending on the health of the above-store service.
@@ -221,21 +221,23 @@ For the purposes of the Data Sync prototype, this solution necessitates microman
 Docker provides a relatively approachable API for managing containers. Furthermore, Docker containers adhere to an industry-wide standard for containers, enabling easy transitions to other container management technologies.
 
 \subsection{Loose Coupling}
-By loosening the coupling between the store applications and the store system, containers enable developing, running, and testing a store application on a local machine, reducing the time between code change and application feedback and increasing developer productivity.
+By loosening the coupling between the store applications and the store system, containers enable developing, running, and testing a store application on a local machine, in a production-like environment. This reduces the time between code change and application feedback, reduces disparities between development and production environments, and increases developer productivity.
 
-Furthermore, containerizing an application smooths its path towards running in the "cloud", if that option is pursued for the stores.
+Furthermore, containerizing an application smooths its path towards running in the "cloud", or any other hardware that AutoZone may consider for store systems.
 
 \subsection{Portability}
-Containers simplify the process of running store applications outside of a store by packaging applications with their dependencies. Since an application's dependencies must be declared explicitly in the definition of its container, it becomes easier and more natural for a developer to state explicitly the dependencies of the applications they create. Encouraging the use of Docker for store applications would make each application more independent of a store's operating system and a store's configuration.
+Containers simplify the process of running store applications outside of a store by packaging applications with everything needed to run the application. Since an application's dependencies must be declared explicitly in the definition of its container, it becomes easier and more natural for a developer to state explicitly the dependencies of the applications they create. Encouraging the use of Docker for store applications would make each application more independent of a store's operating system and a store's configuration.
 
 \subsection{Onboarding Acceleration}
-Docker and containers provide a common language for environment configuration that can replace some of the domain-specific knowledge required to develop on the stores. This common language can accelerate the onboarding process of new store developers by standardizing parts of the process and leveraging developer's existing knowledge of Docker and containers.
+Docker and containers provide a common language for environment configuration that can replace some of the domain-specific knowledge required to develop on the stores. This common language accelerates the onboarding process of new store developers by standardizing parts of the process and leveraging developer's existing knowledge of Docker and containers.
 
 \subsection{Reusability}
-Containers, and their definitions, can be broken down into logical pieces called layers. This enables solutions to environment problems to be made once, stored in version control, and reused indefinitely by future applications.
+Containers, and their definitions, can be broken down into logical pieces called layers. Entire containers and individual layers can be shared between developers. This enables solutions to environment problems to be made once, stored in version control, and reused indefinitely by future applications.
+
+Furthermore, AutoZone developers can leverage purpose-built containers from 3rd parties to reduce the configuration overhead involved in preparing a system for a new application.
 
 \subsection{Reproducibility}
-Containers enable much more of the store system's state can be encoded into version control, which makes more of said state reproducible and auditable.
+Containers enable developers to manage the environment the same way they manage their applications. Containers enable more of the store system's state can be encoded into version control, which makes more of said state more consistent, reproducible, and auditable. Containers ensure that everyone and every environment are running the same code the same way.
 
 \section{Methodology}
 All scripts and commands were executed on \texttt{s8959.autozone.com}.
