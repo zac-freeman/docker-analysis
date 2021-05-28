@@ -12,17 +12,17 @@
 \maketitle
 
 \section{Introduction}
-This document aims to summarize the costs and benefits of deploying Envoy to the stores using Docker containers as a part of Retail Acceleration. The current utility and resource overhead of containerizing Envoy within the Data Sync prototype will be discussed and analyzed in Resource Consumption, Latency, and Deployment Process. The relevance of Docker to the store ecosystem will be discussed in Development Experience. Any code, data, or assumptions used in the analyses will be listed in Methodology, Data, and Scripts.
+This document aims to summarize the costs and benefits of deploying Envoy to the stores using Docker containers as a part of Retail Acceleration. The current utility and resource overhead of containerizing Envoy within the Data Sync prototype will be discussed and analyzed in Resource Consumption, Latency, and Deployment Process. The value of Docker to the store ecosystem will be discussed in Development Experience. Any code, data, or assumptions used in the analyses will be listed in Methodology, Data, and Scripts.
 
 \section{Expected Outcomes}
 The goals of this document are to inform Architecture's decision on:
 \begin{enumerate}
     \item containerizing Envoy for the Retail Acceleration Data Sync prototype and final product
-    \item containerizing further store applications, by providing an approximation of the resource overhead of containerizing other store applications
+    \item containerizing further store applications, by providing an approximation of the resource overhead of containerizing further store applications
 \end{enumerate}
 
 \section{Resource Consumption}
-The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to scope its access to system resources. A Docker container is able to make use of the host's kernel and additionally provide the dependencies needed by the containerized software in a virtual environment. This approach provides a lightweight solution to software virtualization.
+The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to scope its access to system resources. A Docker container is able to make use of the host's kernel and additionally provide the dependencies needed by the containerized software in a partially isolated environment. This approach provides a lightweight solution to software virtualization.
 
 The resource consumption of a containerized application is broken up into two groups. The first group, labelled "Docker Dependencies", consists of the per-system applications such as the docker daemon, the container daemon, etc., that support any number of containerized applications. The other group, labelled "Containerized Application", consists of the container and the application itself, which gives an approximation of the per-application cost of containerizing an application in the store.
 
@@ -49,7 +49,7 @@ The storage consumption was recorded while the applications were idle, under the
 \label{storage-consumption}
 \end{table}
 
-The decrease in storage costs between the native application and the containerized application is likely the result of the docker container using a version of the Envoy application compiled without debugging symbols, rather than some efficiency provided by Docker. The takeaway here is that containerizing Envoy represented a negligible increase in storage consumption.
+The decrease in storage costs between the native application and the containerized application is likely the result of the docker container using a version of the Envoy application compiled without debugging symbols, rather than some efficiency provided by Docker.
 
 \subsection{Memory Consumption}
 The following plot was constructed from data collected while the native and containerized Envoy applications were under simulated loads of 0, 10, 20, and 30 requests per second.
@@ -150,7 +150,7 @@ The divergence at 30 requests/second is most likely a result of some variability
 \subsection{Interpretation}
 Across the board, the containerized Envoy application requires more resources to run than the native Envoy application. Storage Consumption sees the greatest relative increase, followed by Memory Consumption, then CPU Consumption.
 
-While the Storage Consumption of the Containerized Application (with Dependencies) represents a 4 fold increase over the native application, the increase in Storage Consumption is entirely due to the Docker Dependencies. The more containers that are running on the store, the smaller the relative increase in Storage Consumption becomes.
+While the Storage Consumption of the Containerized Application (with Dependencies) represents a 4 fold increase over the native application, the increase in Storage Consumption is entirely due to the Docker Dependencies. Containerizing an application does not lead to an additional increase in storage consumption. The more containers that are running on the store, the smaller the relative increase in Storage Consumption becomes.
 
 A similar observation can be made for the Memory Consumption of the Docker Dependencies - the more containers that are running on the store, the smaller the relative increase in Memory Consumption becomes. The remaining third of the increase in Memory Consumption, taken by the container, can potentially be optimized to a much smaller value.
 
@@ -229,12 +229,12 @@ Furthermore, containerizing an application smooths its path towards running in t
 Containers simplify the process of running store applications outside of a store by packaging applications with everything needed to run the application. Since an application's dependencies must be declared explicitly in the definition of its container, it becomes easier and more natural for a developer to state explicitly the dependencies of the applications they create. Encouraging the use of Docker for store applications would make each application more independent of a store's operating system and a store's configuration.
 
 \subsection{Onboarding Acceleration}
-Docker and containers provide a common language for environment configuration that can replace some of the domain-specific knowledge required to develop on the stores. This common language accelerates the onboarding process of new store developers by standardizing parts of the process and leveraging developer's existing knowledge of Docker and containers.
+Docker and containers provide a common language for environment configuration that can replace some of the domain-specific knowledge required to develop on the stores. This common language accelerates the onboarding process of new store developers by standardizing parts of the process and leveraging the developer's existing knowledge of Docker and containers.
 
 \subsection{Reusability}
 Containers, and their definitions, can be broken down into logical pieces called layers. Entire containers and individual layers can be shared between developers. This enables solutions to environment problems to be made once, stored in version control, and reused indefinitely by future applications.
 
-Furthermore, AutoZone developers can leverage purpose-built containers from 3rd parties to reduce the configuration overhead involved in preparing a system for a new application.
+Furthermore, AutoZone developers can leverage purpose-built containers from 3rd parties to reduce the configuration overhead involved in preparing a system for a new application. 
 
 \subsection{Reproducibility}
 Containers enable developers to manage the environment the same way they manage their applications. Containers enable more of the store system's state can be encoded into version control, which makes more of said state more consistent, reproducible, and auditable. Containers ensure that everyone and every environment are running the same code the same way.
@@ -428,7 +428,7 @@ The Memory and CPU consumption listed for the Native Application represents just
 \label{consumption-breakdown-under-load-30}
 \end{table}
 
-The amount of memory consumed by the Envoy applications appear to grow with time when under load, and the memory consumed does not decrease when the simulated load is removed.
+The amount of memory consumed by the Envoy applications appear to grow with time when under load, and the memory consumed does not decrease when the simulated load is removed. This could be indicative of some kind of memory leak.
 
 \subsection{Latency}
 The following data was collected while the Envoy application was under a simulated load of 0, 10, 20, and 30 requests per second.
