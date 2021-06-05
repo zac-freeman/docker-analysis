@@ -24,7 +24,7 @@ The goals of this document are to inform Architecture's decision on:
 \section{Resource Consumption}
 The foundation of the Docker container is the Linux namespace. A Linux namespace encapsulates a process to scope its access to system resources. A Docker container is able to make use of the host's kernel and additionally provide the dependencies needed by the containerized software in a partially isolated environment. This approach provides a lightweight solution to software virtualization.
 
-The resource consumption of a containerized application is broken up into two groups. The first group, labelled "Docker Dependencies", consists of the per-system applications such as the docker daemon, the container daemon, etc., that support any number of containerized applications. The other group, labelled "Containerized Application", consists of the container and the application itself, which gives an approximation of the per-application cost of containerizing an application in the store.
+The resource consumption of a containerized application is broken up into two groups. The first group, labelled ``Docker Dependencies", consists of the per-system applications such as the docker daemon, the container daemon, etc., that support any number of containerized applications. The other group, labelled ``Containerized Envoy", represents the application running inside a container, which gives an approximation of the per-application cost of containerizing an application in the store.
 
 \subsection{Storage Consumption}
 The storage consumption was recorded while the applications were idle, under the assumption that putting the applications under load would not impact their installed size.
@@ -34,9 +34,9 @@ The storage consumption was recorded while the applications were idle, under the
  \hline
    & Storage (MB)\\ 
  \hline
- Native Application & 93.9 \\
+ Native Envoy & 93.9 \\
  \hline
- Containerized Application & 84.6 \\
+ Containerized Envoy & 84.6 \\
  \hline
  Docker Dependencies & 359.4\\
  \hline\hline
@@ -49,20 +49,20 @@ The storage consumption was recorded while the applications were idle, under the
 \label{storage-consumption}
 \end{table}
 
-The decrease in storage costs between the native application and the containerized application is likely the result of the docker container using a version of the Envoy application compiled without debugging symbols, rather than some efficiency provided by Docker.
+The decrease in storage costs between the native application and the containerized application is likely the result of the docker container using a version of the Envoy application being compiled differently, rather than some efficiency provided by Docker.
 
 \subsection{Memory Consumption}
 The following plot was constructed from data collected while the native and containerized Envoy applications were under simulated loads of 0, 10, 20, and 30 requests per second.
 
 \begin{tikzpicture}
 \begin{axis}[
-    title={Native and Containerized Application Memory Consumption Under Simulated Loads},
+    title={Memory Consumption Under Simulated Loads},
     xlabel={Load (requests/second)},
     ylabel={Memory Consumption (MB)},
     xmin=0, xmax=35,
-    ymin=0, ymax=200,
+    ymin=0, ymax=160,
     xtick={0,10,20,30},
-    ytick={0,40,80,120,160,200},
+    ytick={0,40,80,120,160},
     legend style={at={(0.5,-0.2)},anchor=north},
     ymajorgrids=true,
 ]
@@ -74,24 +74,24 @@ The following plot was constructed from data collected while the native and cont
     coordinates {
         (0, 36.3)(10, 38.5)(20, 39.6)(30, 39.9)
     };
-    \addlegendentry{Native Application}
+    \addlegendentry{Native Envoy}
 
 \addplot[
     color=red,
     mark=triangle,
     ]
     coordinates {
-        (0, 79.8)(10, 85.9)(20, 95.2)(30, 86.8)
+        (0, 32.3)(10, 38.9)(20, 48.2)(30, 39.9)
     };
-    \addlegendentry{Containerized Application}
+    \addlegendentry{Containerized Envoy}
 \addplot[
     color=green,
     mark=o,
     ]
     coordinates {
-        (0, 173)(10, 183.1)(20, 170.1)(30, 161.4)
+        (0, 125.5)(10, 136.1)(20, 123.1)(30, 113.9)
     };
-    \addlegendentry{Containerized Application (with Dependencies)}
+    \addlegendentry{Containerized Envoy (with Dependencies)}
 \end{axis}
 \end{tikzpicture}
 
@@ -104,7 +104,7 @@ The following plot was constructed from data collected while the native and cont
 
 \begin{tikzpicture}
 \begin{axis}[
-    title={Native and Containerized Application CPU Consumption Under Simulated Loads},
+    title={CPU Consumption Under Simulated Loads},
     xlabel={Load (requests/second)},
     ylabel={CPU Consumption (\%)},
     xmin=0, xmax=35,
@@ -122,24 +122,24 @@ The following plot was constructed from data collected while the native and cont
     coordinates {
         (0, 0.47)(10, 3.75)(20, 4.98)(30, 5.55)
     };
-    \addlegendentry{Native Application}
+    \addlegendentry{Native Envoy}
 
 \addplot[
     color=red,
     mark=triangle,
     ]
     coordinates {
-        (0, 0.55)(10, 3.91)(20, 4.96)(30, 6.08)
+        (0, 0.54)(10, 3.90)(20, 4.96)(30, 6.08)
     };
-    \addlegendentry{Containerized Application}
+    \addlegendentry{Containerized Envoy}
 \addplot[
     color=green,
     mark=o,
     ]
     coordinates {
-        (0, 0.64)(10, 3.96)(20, 5.04)(30, 6.13)
+        (0, 0.63)(10, 3.95)(20, 5.04)(30, 6.13)
     };
-    \addlegendentry{Containerized Application (with Dependencies)}
+    \addlegendentry{Containerized Envoy (with Dependencies)}
 \end{axis}
 \end{tikzpicture}
 
@@ -150,9 +150,9 @@ The divergence at 30 requests/second is most likely a result of some variability
 \subsection{Interpretation}
 Across the board, the containerized Envoy application requires more resources to run than the native Envoy application. Storage Consumption sees the greatest relative increase, followed by Memory Consumption, then CPU Consumption.
 
-While the Storage Consumption of the Containerized Application (with Dependencies) represents a 4 fold increase over the native application, the increase in Storage Consumption is entirely due to the Docker Dependencies. Containerizing an application does not lead to an additional increase in storage consumption. The more containers that are running on the store, the smaller the relative increase in Storage Consumption becomes.
+While the Storage Consumption of the Containerized Application (with Dependencies) represents a 4 fold increase over the native application, the increase in Storage Consumption is entirely due to the Docker Dependencies. Containerizing an application does cause increase in storage consumption. The more containers that are running on the store, the smaller the relative increase in Storage Consumption becomes.
 
-A similar observation can be made for the Memory Consumption of the Docker Dependencies - the more containers that are running on the store, the smaller the relative increase in Memory Consumption becomes. The remaining third of the increase in Memory Consumption, taken by the container, can potentially be optimized to a much smaller value.
+A similar observation can be made for the Memory Consumption of the Docker Dependencies. The increase in memory consumption is entirely due to the Docker Dependencies. Containerizing an application does not cause an increase in memory consumption. The more containers that are running on the store, the smaller the relative increase in Memory Consumption becomes.
 
 The increase in CPU Consumption is regular, but small. The typical increase in CPU Consumption between the Native Application and the Containerized Application (with Docker Dependencies) is about 5 times smaller than the CPU Consumption of the Native Application when idle.
 
@@ -166,7 +166,7 @@ The following plot was constructed from data collected while the native and cont
 
 \begin{tikzpicture}
 \begin{axis}[
-    title={Native and Containerized Application Latency Under Simulated Loads},
+    title={Latency Under Simulated Loads},
     xlabel={Load (requests/second)},
     ylabel={Average Latency (ms)},
     xmin=0, xmax=35,
@@ -184,7 +184,7 @@ The following plot was constructed from data collected while the native and cont
     coordinates {
         (0, 162)(10, 217)(20, 453)(30,1025)
     };
-    \addlegendentry{Native Application}
+    \addlegendentry{Native Envoy}
 
 \addplot[
     color=red,
@@ -193,16 +193,16 @@ The following plot was constructed from data collected while the native and cont
     coordinates {
         (0, 156)(10, 213)(20, 454)(30,962)
     };
-    \addlegendentry{Containerized Application}
+    \addlegendentry{Containerized Envoy}
 \end{axis}
 \end{tikzpicture}
 
-Under each simulated load, the difference between the average latencies of the Native and Containerized Applications was well within the standard deviation of each average latency. The negative increase in latency from the Containerized Application represents an insignificant difference in the calculated average latencies.
+Under each simulated load, the difference between the average latencies of Native and Containerized Envoy was well within the standard deviation of each average latency. The negative increase in latency from the Containerized Application represents an insignificant difference in the calculated average latencies.
 
 \subsection{Interpretation}
 The containerized Envoy application does not incur a measurable increase in response times over the native Envoy application. This analysis of the relative performance in the store agrees with similar research from IBM's research report, \href{https://dominoweb.draco.res.ibm.com/reports/rc25482.pdf}{\textit{An Updated Performance Comparison of Virtual Machines and Linux Containers}}.
 
-While the trend in the difference in latencies is promising, the trend of the latencies themselves is concerning. The underlying cause of the superlinear increase in average latency should be investigated to determine if components of the Data Sync prototype need to be reconsidered to meet the needs of the store.
+While the trend in the difference in latencies is promising, the trend of the latencies themselves is concerning. The underlying cause of the superlinear increase in average latency should be investigated further to determine if components of the Data Sync prototype need to be reconsidered to meet the needs of the store.
 
 \section{Deployment Process}
 Currently, the Z-neXt project employs Docker to manage a containerized Envoy application. Envoy routes requests from in-store applications to either an above-store or in-store service, depending on the health of the above-store service.
@@ -211,6 +211,8 @@ Currently, the Z-neXt project employs Docker to manage a containerized Envoy app
 For the Data Sync prototype, deploying the Envoy container to a store involves installing the Docker daemon in the store, then downloading the official Envoy Docker image from Docker Hub. Installing the Docker daemon necessitates enabling the \texttt{ol7\_addons-prod} package repository in the store. Once the image is downloaded to the store, it can be started by the Docker daemon.
 
 This solution could be made production-ready by hosting the Docker image in the AutoZone Artifactory, and retrieving it in the store from the AutoZone Artifactory. Furthermore, the store deployment strategies would need to be extended to cover containers: preemptive container downloads, container lifecycle management, \texttt{yum}-esque dependency management, etc.
+
+Lastly, some consideration would need to be given to how to manage detached containers. Currently, \texttt{systemd} is able to manage the Envoy container, but this hinges on the Envoy container being attached to a shell through which \texttt{systemd} can manage it.
 
 \subsection{Native Deployment}
 Deploying the native Envoy application to a store would require adding the \texttt{tetrate-getenvoy} package repository to the store. Once the package repository is added, the Envoy application can be installed with the \texttt{getenvoy-envoy} package.
@@ -221,12 +223,12 @@ For the purposes of the Data Sync prototype, this solution necessitates microman
 Docker provides a relatively approachable API for managing containers. Furthermore, Docker containers adhere to an industry-wide standard for containers, enabling easy transitions to other container management technologies.
 
 \subsection{Loose Coupling}
-By loosening the coupling between the store applications and the store system, containers enable developing, running, and testing a store application on a local machine, in a production-like environment. This reduces the time between code change and application feedback, reduces disparities between development and production environments, and increases developer productivity.
+Containers loosen the coupling between the store applications and the store system. This enables developing, running, and testing a store application on a local machine, in a production-like environment. This reduces the time between code change and application feedback, reduces disparities between development, testing, and production environments, and increases developer productivity.
 
-Furthermore, containerizing an application smooths its path towards running in the "cloud", or any other hardware that AutoZone may consider for store systems.
+Furthermore, containerizing an application smooths its path towards running in the ``cloud", or any other hardware that AutoZone may consider for store systems.
 
 \subsection{Portability}
-Containers simplify the process of running store applications outside of a store by packaging applications with everything needed to run the application. Since an application's dependencies must be declared explicitly in the definition of its container, it becomes easier and more natural for a developer to state explicitly the dependencies of the applications they create. Encouraging the use of Docker for store applications would make each application more independent of a store's operating system and a store's configuration.
+Containers simplify the process of running store applications outside of a store by packaging applications with everything needed to run the application. Since an application's dependencies must be declared in the definition of its container, it becomes easier and more natural for a developer to state explicitly the dependencies of the applications they create. Encouraging the use of Docker for store applications would make each application more independent of a store's operating system and a store's configuration.
 
 \subsection{Onboarding Acceleration}
 Docker and containers provide a common language for environment configuration that can replace some of the domain-specific knowledge required to develop on the stores. This common language accelerates the onboarding process of new store developers by standardizing parts of the process and leveraging the developer's existing knowledge of Docker and containers.
@@ -247,6 +249,8 @@ The size of each application was captured with \texttt{rpm -qi package\_name}. T
 
 \subsection{Memory Consumption}
 The memory consumed by each process was equated with the physical memory being used by each process. The physical memory being used by each process was captured with \texttt{cat /proc/process\_id/status $|$ grep VmRSS}.
+
+At one point, there was an entry in the data for the ``Docker Container". This was actually a shell being attached to the container. Starting the container without said shell necessitates running the \texttt{docker run} command with \texttt{-d} appended to it. Running the container in detached mode makes \texttt{systemd} unable to monitor it; process management for docker containers can be partially replaced with the \texttt{--restart} policy.
 
 \subsection{CPU Consumption}
 CPU consumption for each process was determined by taking the average of 100 values collected from \texttt{top} over a period of 200 seconds. \texttt{cpu-usage.sh} is used to collect these values and \texttt{stat-analysis.pl} is used to average the collected values.
@@ -294,11 +298,8 @@ The storage consumption listed for the Containerized Application is just the sto
 \subsection{Memory and CPU Consumption}
 The following data was collected while the Envoy application was under a simulated load of 0, 10, 20, and 30 requests per second.
 
-The Memory and CPU consumption listed for the Docker Dependencies represents the memory and CPU time consumed by the applications required to support Docker containers in the store. This includes the \texttt{dockerd}, \texttt{containerd}, and \texttt{containerd-shim}.
-
-The Memory and CPU consumption listed for the Containerized Application represents the memory and CPU time consumed by the Envoy application and the container that envelops it.
-
-The Memory and CPU consumption listed for the Native Application represents just the memory and CPU time consumed by the native Envoy application.
+The Memory and CPU consumption of \texttt{dockerd}, \texttt{containerd}, and\\
+\texttt{containerd-shim} are grouped together into the ``Dependencies" and the applications required to support Docker containers in the store.
 
 \begin{table}[H]
 \begin{tabular}{ |c|c|c| }
@@ -309,23 +310,15 @@ The Memory and CPU consumption listed for the Native Application represents just
  \hline
  Containerized Envoy & 32.3 & 0.54 \\
  \hline
- Docker Container & 47.5 & 0.01 \\
- \hline
  \texttt{dockerd} & 75.1 & 0.05 \\
  \hline
  \texttt{containerd} & 10.8 & 0.03 \\
  \hline
  \texttt{containerd-shim} & 7.3 & 0.01 \\
  \hline\hline
- Native Application & 36.3 & 0.47 \\
+ Increase (with Dependencies) & 89.2 & 0.16 \\
  \hline
- Containerized Application & 79.8 & 0.55 \\
- \hline
- Docker Dependencies & 93.2 & 0.09 \\
- \hline\hline
- Increase (with Dependencies) & 136.7 & 0.17 \\
- \hline
- Increase (without Dependencies) & 43.5 & 0.08 \\
+ Increase (without Dependencies) & -4.0 & 0.07 \\
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the applications while idle.}
@@ -341,23 +334,15 @@ The Memory and CPU consumption listed for the Native Application represents just
  \hline
  Containerized Envoy & 38.9 & 3.90 \\
  \hline
- Docker Container & 47.0 & 0.01 \\
- \hline
  \texttt{dockerd} & 75.1 & 0.02 \\
  \hline
  \texttt{containerd} & 14.8 & 0.03 \\
  \hline
  \texttt{containerd-shim} & 7.3 & $<$0.01 \\
  \hline\hline
- Native Application & 36.3 & 3.75 \\
+ Increase (with Dependencies) & 97.6 & 0.20 \\
  \hline
- Containerized Application & 85.9 & 3.91 \\
- \hline
- Docker Dependencies & 97.2 & 0.05 \\
- \hline\hline
- Increase (with Dependencies) & 144.6 & 0.21 \\
- \hline
- Increase (without Dependencies) & 47.4 & 0.16 \\
+ Increase (without Dependencies) & 0.4 & 0.15 \\
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the applications while under a load of 10 requests per second.}
@@ -373,23 +358,15 @@ The Memory and CPU consumption listed for the Native Application represents just
  \hline
  Containerized Envoy & 48.2 & 4.96 \\
  \hline
- Docker Container & 47.0 & $<$0.01 \\
- \hline
  \texttt{dockerd} & 54.3 & 0.06 \\
  \hline
  \texttt{containerd} & 13.1 & 0.02 \\
  \hline
  \texttt{containerd-shim} & 7.5 & $<$0.01 \\
  \hline\hline
- Native Application & 39.6 & 4.98 \\
+ Increase (with Dependencies) & 83.5 & 0.06 \\
  \hline
- Containerized Application & 95.2 & 4.96 \\
- \hline
- Docker Dependencies & 74.9 & 0.08 \\
- \hline\hline
- Increase (with Dependencies) & 130.5 & 0.06 \\
- \hline
- Increase (without Dependencies) & 55.6 & -0.02 \\
+ Increase (without Dependencies) & 8.6 & -0.02 \\
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the applications while under a load of 20 requests per second.}
@@ -405,23 +382,15 @@ The Memory and CPU consumption listed for the Native Application represents just
  \hline
  Containerized Envoy & 39.9 & 6.08 \\
  \hline
- Docker Container & 46.9 & $<$0.01 \\
- \hline
  \texttt{dockerd} & 54.5 & 0.03 \\
  \hline
  \texttt{containerd} & 13.0 & 0.02 \\
  \hline
  \texttt{containerd-shim} & 7.1 & $<$0.01 \\
  \hline\hline
- Native Application & 39.9 & 5.55 \\
+ Increase (with Dependencies) & 74.6 & 0.58 \\
  \hline
- Containerized Application & 86.8 & 6.08 \\
- \hline
- Docker Dependencies & 74.6 & 0.05 \\
- \hline\hline
- Increase (with Dependencies) & 121.5 & 0.58 \\
- \hline
- Increase (without Dependencies) & 46.9 & 0.53 \\
+ Increase (without Dependencies) & 0 & 0.53 \\
  \hline
 \end{tabular}
 \caption{A breakdown of the memory and CPU time consumed by the applications while under a load of 30 requests per second.}
